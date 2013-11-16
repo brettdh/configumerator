@@ -15,15 +15,27 @@ using std::map; using std::set; using std::vector;
 using std::istringstream; using std::ostringstream;
 using std::for_each;
 
-
-// TODO: implement logging
+#ifdef ANDROID
+#include <android/log.h>
+void LOGD(const char *fmt, ...) 
+{
+    va_list ap;
+    va_start(ap, fmt);
+    
+    __android_log_vprint(ANDROID_LOG_INFO, "configumerator", fmt, ap);
+    va_end(ap);
+}
+#else
 #define LOGD printf
+#endif
+// TODO: implement logging
 
 #define ASSERT(condition)                                       \
     do {                                                        \
         if (!condition) {                                       \
             fprintf(stderr, "Assertion '%s' failed at %s:%d\n", \
                     #condition, __FILE__, __LINE__);            \
+            sleep(60);                                          \
             __builtin_trap();                                  \
         }                                                       \
     } while (0)
@@ -91,6 +103,7 @@ configumerator::Config::readFile(const string& filename)
     registerOptionReader(bind(&Config::readBooleanOption, this, _1, _2), &boolean_option_keys);
     registerOptionReader(bind(&Config::readStringOption, this, _1, _2), &string_option_keys);
     registerOptionReader(bind(&Config::readDoubleOption, this, _1, _2), &double_option_keys);
+    registerOptionReader(bind(&Config::readDoublesListOption, this, _1, _2), &doubles_list_option_keys);
     
     ifstream config_input(filename.c_str());
     if (config_input) {
@@ -188,7 +201,8 @@ configumerator::Config::getBoolean(const string& key)
 bool 
 configumerator::Config::hasString(const std::string& key)
 {
-    return string_options.count(key) > 0;
+    return (string_options.count(key) > 0 &&
+            string_options[key].length() > 0);
 }
 
 string
@@ -208,4 +222,55 @@ double
 configumerator::Config::getDouble(const string& key)
 {
     return double_options[key];
+}
+
+
+void 
+configumerator::Config::readDoublesListOption(const std::string& line, const std::string& key)
+{
+    string value_str = get_param(line, key);
+
+    string dummy;
+    istringstream iss(line);
+    iss >> dummy;
+    
+    vector<double> values;
+    double value;
+    while (iss >> value) {
+        values.push_back(value);
+    }
+    if (values.empty()) {
+        LOGD("[config] failed to parse any numbers from line: \"%s\"\n", line.c_str());
+        exit(EXIT_FAILURE);
+    }
+    ostringstream oss;
+    oss << "[ ";
+    for (double value : values) {
+        oss << value << " ";
+    }
+    oss << "]";
+
+    LOGD("[config] %s=%s\n", key.c_str(), oss.str().c_str());
+    doubles_list_options[key] = values;
+}
+
+bool 
+configumerator::Config::hasDoublesList(const std::string& key)
+{
+    return (doubles_list_options.count(key) < 0 &&
+            doubles_list_options[key].size() > 0);
+}
+
+vector<double> 
+configumerator::Config::getDoublesList(const std::string& key)
+{
+    return doubles_list_options[key];
+}
+
+void
+configumerator::Config::registerDoublesListOption(const std::string& key, 
+                                                  vector<double> default_value)
+{
+    doubles_list_option_keys.insert(key);
+    doubles_list_options[key] = default_value;
 }

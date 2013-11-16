@@ -14,10 +14,12 @@ namespace configumerator {
         std::set<std::string> boolean_option_keys;
         std::set<std::string> string_option_keys;
         std::set<std::string> double_option_keys;
+        std::set<std::string> doubles_list_option_keys;
 
         std::map<std::string, bool> boolean_options;
         std::map<std::string, std::string> string_options;
         std::map<std::string, double> double_options;
+        std::map<std::string, std::vector<double> > doubles_list_options;
 
         std::map<std::string, std::set<std::string> > string_option_constraints;
 
@@ -26,6 +28,8 @@ namespace configumerator {
         void readBooleanOption(const std::string& line, const std::string& key);
         void readStringOption(const std::string& line, const std::string& key);
         void readDoubleOption(const std::string& line, const std::string& key);
+
+        void readDoublesListOption(const std::string& line, const std::string& key);
 
         std::vector<std::pair<std::function<void(const std::string&, const std::string&)>, std::set<std::string>* > > readers;
     protected:
@@ -36,6 +40,9 @@ namespace configumerator {
     
         bool hasDouble(const std::string& key);
         double getDouble(const std::string& key);
+
+        bool hasDoublesList(const std::string& key);
+        std::vector<double> getDoublesList(const std::string& key);
     
         Config();
         void loadConfig(const std::string& filename);
@@ -48,6 +55,9 @@ namespace configumerator {
         void registerStringOption(const std::string& key, const std::string& default_value="", 
                                   const std::set<std::string>& constraints=std::set<std::string>());
         void registerDoubleOption(const std::string& key, double default_value=0.0);
+
+        void registerDoublesListOption(const std::string& key, 
+                                       std::vector<double> default_value=std::vector<double>());
         
         void checkStringConstraints(const std::string& key, const std::string& value);
     };
