@@ -6,8 +6,15 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include <stdexcept>
+#include <limits>
 
 namespace configumerator {
+    class ConfigValidationError : public std::runtime_error {
+      public:
+        ConfigValidationError(const std::string& msg) : std::runtime_error(msg) {}
+    };
+
     class Config {
         // subclass must define public accessors
     private:
@@ -54,7 +61,7 @@ namespace configumerator {
         void registerBooleanOption(const std::string& key, bool default_value=false);
         void registerStringOption(const std::string& key, const std::string& default_value="", 
                                   const std::set<std::string>& constraints=std::set<std::string>());
-        void registerDoubleOption(const std::string& key, double default_value=0.0);
+        void registerDoubleOption(const std::string& key, double default_value=std::numeric_limits<double>::quiet_NaN());
 
         void registerDoublesListOption(const std::string& key, 
                                        std::vector<double> default_value=std::vector<double>());

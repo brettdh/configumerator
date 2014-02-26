@@ -11,6 +11,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <cmath>
 using std::string; using std::ifstream;
 using std::map; using std::set; using std::vector;
 using std::istringstream; using std::ostringstream;
@@ -58,9 +59,14 @@ configumerator::Config::Config()
 
 void configumerator::Config::loadConfig(const string& filename)
 {
-    setup();
-    readFile(filename);
-    validate();
+    try {
+        setup();
+        readFile(filename);
+        validate();
+    } catch (configumerator::ConfigValidationError& e) {
+        LOGD("[config] validation failed: %s\n", e.what());
+        exit(EXIT_FAILURE);
+    }
 }
 
 void
@@ -128,16 +134,16 @@ configumerator::Config::readFile(const string& filename)
                 }
             }
             if (!matched) {
-                LOGD("[config] unrecognized config param on line %zu: \"%s\"\n",
-                                 line_num, line.c_str());
-                exit(EXIT_FAILURE);
+                ostringstream s;
+                s << "unrecognized config param on line " << line_num << ": \"" << line << "\"";
+                throw configumerator::ConfigValidationError(s.str());
             }
         }
         config_input.close();
     } else {
-        LOGD("[config] Error: config file not read; couldn't open \"%s\"\n",
-                         filename.c_str());
-        exit(EXIT_FAILURE);
+        ostringstream s;
+        s << "config file not read; couldn't open \"" << filename << "\"";
+        throw configumerator::ConfigValidationError(s.str());
     }
 }
 
@@ -216,7 +222,8 @@ configumerator::Config::getString(const string& key)
 bool 
 configumerator::Config::hasDouble(const std::string& key)
 {
-    return double_options.count(key) > 0;
+    return (double_options.count(key) > 0 &&
+            !std::isnan(double_options[key]));
 }
 
 double
